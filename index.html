@@ -7,7 +7,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;800&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
 
   <style>
     :root{
@@ -38,18 +38,17 @@
       overflow:hidden;
     }
 
-    /* Desktop: feed-friendly */
+    /* Desktop: 4:5. Mobile: 9:16 and tall. */
     .poster{
       width:min(720px, 94vw);
       aspect-ratio:4/5;
       position:relative;
       background:rgba(0,0,0,.25);
       user-select:none;
-      touch-action:none;
       overflow:hidden;
+      /* IMPORTANT: keep gestures stable */
+      touch-action:none;
     }
-
-    /* Mobile: tall story */
     @media(max-width:700px){
       .poster{
         width:min(96vw, 520px);
@@ -58,7 +57,21 @@
       }
     }
 
-    /* Social-ish vignette + grade */
+    /* Photo stage */
+    .stage{position:absolute; inset:0; overflow:hidden; z-index:1;}
+    .stage img{
+      position:absolute;
+      left:50%; top:50%;
+      transform-origin:center;
+      max-width:none;
+      pointer-events:none;
+      -webkit-user-drag:none;
+
+      /* On-trend mild grade */
+      filter: contrast(1.07) saturate(1.15) brightness(1.03) sepia(0.06);
+    }
+
+    /* Vignette + film */
     .grade{
       position:absolute; inset:0; pointer-events:none; z-index:3;
       background:
@@ -92,6 +105,7 @@
     .dropzone h2{margin:0 0 8px;font-size:18px;font-weight:750}
     .dropzone p{margin:0 0 14px;color:var(--muted);font-size:14px;line-height:1.35}
     .btnRow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
     button{
       border:1px solid rgba(255,255,255,.16);
       background:rgba(255,255,255,.08);
@@ -107,35 +121,32 @@
     button:active{transform:translateY(1px)}
     button:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
-    .stage{position:absolute; inset:0; overflow:hidden; z-index:1;}
-    .stage img{
-      position:absolute; left:50%; top:50%;
-      transform-origin:center;
-      max-width:none;
-      pointer-events:none;
-      -webkit-user-drag:none;
-      filter: contrast(1.07) saturate(1.15) brightness(1.03) sepia(0.06);
-    }
-
+    /* Top controls */
     .controls{
       position:absolute; top:14px; left:14px; right:14px;
-      display:none; gap:10px; justify-content:flex-end; flex-wrap:wrap;
+      display:none;
+      gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
       z-index:20;
     }
 
-    .dragHint{
+    /* Hint (auto hides) */
+    .hint{
       position:absolute; top:14px; left:14px;
-      padding:8px 10px; border-radius:12px;
+      padding:8px 10px;
+      border-radius:12px;
       border:1px solid rgba(255,255,255,.14);
       background:rgba(0,0,0,.28);
       color:rgba(255,255,255,.78);
       font-size:12px;
       z-index:20;
       opacity:1;
-      transition: opacity .35s ease;
+      transition:opacity .35s ease;
     }
-    .hintHidden .dragHint{opacity:0; pointer-events:none;}
+    .hintHidden .hint{opacity:0; pointer-events:none;}
 
+    /* Affirmation (reveals after 6s from first load only) */
     .affirmation{
       position:absolute; left:16px; right:16px; bottom:18px;
       padding:16px 18px;
@@ -170,7 +181,7 @@
     .loaded .controls{display:flex}
     .reveal .affirmation{opacity:1;transform:none}
 
-    /* Retry appears after 20s */
+    /* Retry is optional: hidden until 20s after first load */
     .retryHidden #retryBtn{display:none}
   </style>
 </head>
@@ -179,6 +190,7 @@
   <div class="wrap">
     <div class="card">
       <div id="poster" class="poster">
+
         <div class="stage">
           <img id="photo" alt="" />
         </div>
@@ -193,14 +205,14 @@
           <button type="button" id="retryBtn" disabled>Retry</button>
         </div>
 
-        <div class="dragHint" id="dragHint">Drag to reposition • Scroll/pinch to zoom</div>
+        <div class="hint" id="hint">Drag to reposition • Scroll/pinch to zoom</div>
 
         <div class="affirmation" aria-live="polite">
           <p class="main" id="affirmMain"></p>
           <p class="sub" id="affirmSub"></p>
         </div>
 
-        <div class="uploadOverlay">
+        <div class="uploadOverlay" id="uploadOverlay">
           <div class="dropzone" id="dropzone">
             <h2>Add your photo</h2>
             <p>Choose or drop an image. The message appears after the photo loads.</p>
@@ -210,6 +222,7 @@
             <input id="file" type="file" accept="image/*" hidden>
           </div>
         </div>
+
       </div>
     </div>
   </div>
@@ -217,10 +230,387 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <script>
+    // Elements
     const poster = document.getElementById('poster');
     const photo = document.getElementById('photo');
-    const file = document.getElementById('file');
+    const fileInput = document.getElementById('file');
     const chooseBtn = document.getElementById('chooseBtn');
     const dropzone = document.getElementById('dropzone');
 
-    const affirmMain = document.getElementById('af
+    const affirmMain = document.getElementById('affirmMain');
+    const affirmSub  = document.getElementById('affirmSub');
+
+    const downloadBtn = document.getElementById('downloadPng');
+    const copyBtn = document.getElementById('copyPng');
+    const fitBtn = document.getElementById('fitBtn');
+    const retryBtn = document.getElementById('retryBtn');
+
+    const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent) && !window.MSStream;
+
+    // -------------------------
+    // Time-of-day affirmations (~30 total)
+    // -------------------------
+    const MORNING = [
+      { main: "This person is allowed a gentle start.", sub: "You don’t need to rush to be worthy." },
+      { main: "This person is doing better than they think.", sub: "Even small steps count." },
+      { main: "This person deserves a calm morning.", sub: "Softness is strength." },
+      { main: "This person can begin again.", sub: "Fresh doesn’t have to be loud." },
+      { main: "This person is capable today.", sub: "One thing at a time." },
+      { main: "This person is enough already.", sub: "Before they prove anything." },
+      { main: "This person matters.", sub: "More than they realise." },
+      { main: "This person is worthy of good things.", sub: "No conditions attached." }
+    ];
+
+    const AFTERNOON = [
+      { main: "This person’s effort matters.", sub: "Especially the unseen parts." },
+      { main: "This person is learning, not failing.", sub: "Growth looks messy sometimes." },
+      { main: "This person deserves kindness today.", sub: "From others — and themselves." },
+      { main: "This person can take up space.", sub: "They were never ‘too much’." },
+      { main: "This person is more capable than they feel.", sub: "Feelings are not facts." },
+      { main: "This person is loved and appreciated.", sub: "More than they know." },
+      { main: "This person belongs.", sub: "There is space for you here." },
+      { main: "This person’s pace is the right pace.", sub: "Life isn’t a race." }
+    ];
+
+    const EVENING = [
+      { main: "This person did enough for one day.", sub: "Rest is part of the work." },
+      { main: "This person deserves gentleness.", sub: "Especially from themselves." },
+      { main: "This person is safe to slow down.", sub: "Nothing needs proving tonight." },
+      { main: "This person is proud-worthy.", sub: "Even for simply getting through." },
+      { main: "This person is seen.", sub: "Even when they feel invisible." },
+      { main: "This person is enough.", sub: "Right now. As-is." },
+      { main: "This person is held in good regard.", sub: "More than they realise." }
+    ];
+
+    const LATE = [
+      { main: "This person is allowed to rest.", sub: "Worth is not earned through exhaustion." },
+      { main: "This person is not a burden.", sub: "They never were." },
+      { main: "This person has survived everything so far.", sub: "That counts for something." },
+      { main: "This person’s story isn’t finished.", sub: "There’s more ahead." },
+      { main: "This person deserves peace.", sub: "Even if it starts small." },
+      { main: "This person is worthy, exactly as they are.", sub: "No performance required." },
+      { main: "This person is stronger than the hard days.", sub: "Quiet strength still counts." }
+    ];
+
+    function dayPart(){
+      const h = new Date().getHours();
+      if (h >= 5 && h < 12) return "morning";
+      if (h >= 12 && h < 17) return "afternoon";
+      if (h >= 17 && h < 22) return "evening";
+      return "late";
+    }
+
+    function pickAffirmation(){
+      const p = dayPart();
+      const pool = (p === "morning") ? MORNING
+                 : (p === "afternoon") ? AFTERNOON
+                 : (p === "evening") ? EVENING
+                 : LATE;
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      affirmMain.textContent = pick.main;
+      affirmSub.textContent  = pick.sub;
+    }
+
+    // -------------------------
+    // Transform state (fit + margins)
+    // -------------------------
+    let scale = 1, x = 0, y = 0;
+    let baseScale = 1, minScale = 0.2, maxScale = 3.0;
+
+    function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+    function apply(){
+      photo.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px) scale(${scale})`;
+    }
+
+    function computeContainScale(){
+      const pw = poster.clientWidth;
+      const ph = poster.clientHeight;
+      const iw = photo.naturalWidth || 1;
+      const ih = photo.naturalHeight || 1;
+      return Math.min(pw / iw, ph / ih) * 0.98;
+    }
+
+    function fitToScreen(){
+      x = 0; y = 0;
+      baseScale = computeContainScale();
+      scale = baseScale;
+      minScale = baseScale * 0.35;               // allow blank margins
+      maxScale = Math.max(3.0, baseScale * 6);   // allow close zoom
+      apply();
+      resetGestureBaseline();
+    }
+
+    // -------------------------
+    // Timers (ONLY from initial image load)
+    // Retry must NOT restart these.
+    // -------------------------
+    let revealTimer = null;
+    let hintTimer = null;
+    let retryTimer = null;
+    let timersStarted = false;
+
+    function startOneTimeTimers(){
+      if (timersStarted) return;
+      timersStarted = true;
+
+      poster.classList.remove('reveal');
+      poster.classList.remove('hintHidden');
+      poster.classList.add('retryHidden');
+
+      revealTimer = setTimeout(() => poster.classList.add('reveal'), 6000);
+      hintTimer  = setTimeout(() => poster.classList.add('hintHidden'), 5000);
+      retryTimer = setTimeout(() => poster.classList.remove('retryHidden'), 20000);
+    }
+
+    // -------------------------
+    // Upload handling (fixes the broken choose button)
+    // -------------------------
+    chooseBtn.addEventListener('click', () => {
+      // Must be direct user gesture → reliable on mobile
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) loadImage(f);
+    });
+
+    dropzone.addEventListener('dragover', (e) => e.preventDefault());
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) loadImage(f);
+    });
+
+    function loadImage(fileObj){
+      pickAffirmation();
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        photo.onload = () => {
+          poster.classList.add('loaded');
+          downloadBtn.disabled = false;
+          copyBtn.disabled = false;
+          fitBtn.disabled = false;
+          retryBtn.disabled = false;
+
+          fitToScreen();
+          startOneTimeTimers();
+        };
+        photo.src = reader.result; // data URL (more reliable for capture)
+        photo.alt = "User photo";
+      };
+      reader.readAsDataURL(fileObj);
+    }
+
+    // Fit button (instant recovery)
+    fitBtn.addEventListener('click', () => {
+      if(!poster.classList.contains('loaded')) return;
+      fitToScreen();
+    });
+
+    // Retry: optional, does NOT restart timers; just swaps text.
+    retryBtn.addEventListener('click', () => {
+      if(!poster.classList.contains('loaded')) return;
+      pickAffirmation();
+      // If already revealed, it updates immediately.
+      // If not yet revealed, it updates the hidden text, without changing the reveal schedule.
+    });
+
+    // -------------------------
+    // Gestures: stable iOS pinch/drag + desktop wheel
+    // -------------------------
+    const pointers = new Map();
+    let lastPinchDist = null;
+
+    // iOS needs stronger damping + step clamping
+    const DRAG_SENS = isIOS ? 0.45 : 1.0;
+
+    // pinch: very calm on iOS
+    const PINCH_SENS = isIOS ? 0.18 : 1.0;
+    const PINCH_DEADZONE = isIOS ? 0.012 : 0.0;
+
+    // per-frame clamp (prevents "jump" feeling)
+    const MAX_SCALE_STEP = isIOS ? 0.020 : 0.06; // max +/- per frame
+
+    // rAF batching
+    let needsApply = false;
+    function scheduleApply(){
+      if (needsApply) return;
+      needsApply = true;
+      requestAnimationFrame(() => {
+        needsApply = false;
+        apply();
+      });
+    }
+
+    function getDist(a, b){
+      const dx = a.clientX - b.clientX;
+      const dy = a.clientY - b.clientY;
+      return Math.hypot(dx, dy);
+    }
+
+    function resetGestureBaseline(){
+      pointers.clear();
+      lastPinchDist = null;
+    }
+
+    poster.addEventListener('pointerdown', (e) => {
+      // Never hijack taps on UI elements
+      if (e.target.closest('button') || e.target.closest('input') || e.target.closest('#dropzone')) return;
+      if(!poster.classList.contains('loaded')) return;
+
+      pointers.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
+      poster.setPointerCapture?.(e.pointerId);
+
+      if (pointers.size === 2){
+        const [p1, p2] = Array.from(pointers.values());
+        lastPinchDist = getDist(p1, p2);
+      }
+    });
+
+    poster.addEventListener('pointermove', (e) => {
+      if(!pointers.has(e.pointerId)) return;
+
+      const prev = pointers.get(e.pointerId);
+      const curr = { clientX: e.clientX, clientY: e.clientY };
+      pointers.set(e.pointerId, curr);
+
+      // 1 pointer: drag
+      if (pointers.size === 1){
+        const dx = (curr.clientX - prev.clientX) * DRAG_SENS;
+        const dy = (curr.clientY - prev.clientY) * DRAG_SENS;
+        x += dx; y += dy;
+        scheduleApply();
+        return;
+      }
+
+      // 2 pointers: pinch zoom (damped)
+      if (pointers.size === 2){
+        const [p1, p2] = Array.from(pointers.values());
+        const dist = getDist(p1, p2);
+
+        if (!lastPinchDist){
+          lastPinchDist = dist;
+          return;
+        }
+
+        const rawRatio = dist / lastPinchDist;
+        lastPinchDist = dist; // always update baseline (prevents "stuck" reversals)
+
+        if (Math.abs(rawRatio - 1) < PINCH_DEADZONE) return;
+
+        // Convert ratio to a small intended delta
+        const intendedRatio = 1 + ((rawRatio - 1) * PINCH_SENS);
+
+        // Convert ratio into a scale step and clamp it (stability)
+        let nextScale = scale * intendedRatio;
+        const delta = nextScale - scale;
+        const clampedDelta = clamp(delta, -MAX_SCALE_STEP, MAX_SCALE_STEP);
+
+        nextScale = clamp(scale + clampedDelta, minScale, maxScale);
+        scale = nextScale;
+
+        scheduleApply();
+      }
+    });
+
+    function endPointer(e){
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) lastPinchDist = null;
+      poster.releasePointerCapture?.(e.pointerId);
+    }
+    poster.addEventListener('pointerup', endPointer);
+    poster.addEventListener('pointercancel', endPointer);
+
+    // Desktop wheel zoom
+    poster.addEventListener('wheel', (e) => {
+      if(!poster.classList.contains('loaded')) return;
+      e.preventDefault();
+      const delta = -Math.sign(e.deltaY);
+      const factor = (delta > 0) ? 1.08 : 0.92;
+      scale = clamp(scale * factor, minScale, maxScale);
+      apply();
+    }, { passive: false });
+
+    // -------------------------
+    // Export / copy
+    // -------------------------
+    async function captureCanvas(){
+      return await html2canvas(poster, {
+        scale: 2,
+        backgroundColor: "#0b0c10",
+        useCORS: true
+      });
+    }
+
+    async function downloadPNG(){
+      const canvas = await captureCanvas();
+      const dataUrl = canvas.toDataURL("image/png");
+
+      try{
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = "poster.png";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }catch{
+        window.open(dataUrl, "_blank");
+      }
+
+      // iOS Safari often ignores a.download
+      if (isIOS) window.open(dataUrl, "_blank");
+    }
+
+    async function copyPNG(){
+      const canvas = await captureCanvas();
+
+      if (!navigator.clipboard || !window.ClipboardItem){
+        const dataUrl = canvas.toDataURL("image/png");
+        window.open(dataUrl, "_blank");
+        alert("Clipboard copy isn’t supported here. I opened the image — long-press to save/share.");
+        return;
+      }
+
+      return new Promise((resolve) => {
+        canvas.toBlob(async (blob) => {
+          try{
+            await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+            alert("Copied as PNG. Paste into apps that support image paste.");
+            resolve();
+          }catch{
+            const dataUrl = canvas.toDataURL("image/png");
+            window.open(dataUrl, "_blank");
+            alert("Copy blocked by browser permissions. I opened the image — long-press to save/share.");
+            resolve();
+          }
+        }, "image/png");
+      });
+    }
+
+    downloadBtn.addEventListener('click', downloadPNG);
+    copyBtn.addEventListener('click', copyPNG);
+
+    // Maintain relative zoom on resize/orientation
+    window.addEventListener('resize', () => {
+      if (!poster.classList.contains('loaded')) return;
+      const prevBase = baseScale || 1;
+      const rel = scale / prevBase;
+
+      baseScale = computeContainScale();
+      minScale = baseScale * 0.35;
+      maxScale = Math.max(3.0, baseScale * 6);
+
+      scale = clamp(baseScale * rel, minScale, maxScale);
+      apply();
+      resetGestureBaseline();
+    });
+
+    // Init
+    poster.classList.add('retryHidden');
+    pickAffirmation();
+    apply();
+  </script>
+</body>
+</html>
