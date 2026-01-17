@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Poster</title>
 
+  <!-- Softer, more “social” typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;800&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+
   <style>
     :root{
       --bg:#0b0c10;
@@ -24,7 +29,7 @@
       place-items:center;
       background:radial-gradient(1000px 700px at 30% 20%,#182033 0%,var(--bg) 55%);
       color:var(--text);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     }
 
     .wrap{width:min(960px,92vw)}
@@ -43,10 +48,32 @@
       position:relative;
       background:rgba(0,0,0,.25);
       user-select:none;
-      touch-action:none; /* helps on mobile dragging */
+      touch-action:none; /* critical for pinch/drag */
+      overflow:hidden;
     }
     @media(max-width:700px){
       .poster{aspect-ratio:4/5;}
+    }
+
+    /* A subtle “social media” vignette + film grade overlay */
+    .grade{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:3;
+      background:
+        radial-gradient(120% 110% at 50% 45%, rgba(0,0,0,0.00) 45%, rgba(0,0,0,0.35) 100%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.12));
+      mix-blend-mode: normal;
+    }
+    .grain{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:4;
+      opacity:.08;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+      background-size:180px 180px;
     }
 
     /* Upload overlay */
@@ -58,6 +85,7 @@
       padding:22px;
       background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.35));
       transition:opacity .25s ease, transform .25s ease;
+      z-index:10;
     }
     .dropzone{
       width:min(520px,92%);
@@ -67,15 +95,10 @@
       text-align:center;
       background:rgba(255,255,255,.04);
     }
-    .dropzone h2{margin:0 0 8px;font-size:18px;font-weight:700}
+    .dropzone h2{margin:0 0 8px;font-size:18px;font-weight:750}
     .dropzone p{margin:0 0 14px;color:var(--muted);font-size:14px;line-height:1.35}
 
-    .btnRow{
-      display:flex;
-      gap:10px;
-      justify-content:center;
-      flex-wrap:wrap;
-    }
+    .btnRow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 
     button{
       border:1px solid rgba(255,255,255,.16);
@@ -86,20 +109,18 @@
       cursor:pointer;
       font-weight:650;
       letter-spacing:.2px;
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     }
     button:hover{background:rgba(255,255,255,.11)}
     button:active{transform:translateY(1px)}
-    button:disabled{
-      opacity:.55;
-      cursor:not-allowed;
-      transform:none;
-    }
+    button:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
     /* Stage */
     .stage{
       position:absolute;
       inset:0;
       overflow:hidden;
+      z-index:1;
     }
     .stage img{
       position:absolute;
@@ -109,41 +130,12 @@
       max-width:none;
       pointer-events:none;
       -webkit-user-drag:none;
+
+      /* “Social” grade applied directly to the photo */
+      filter: contrast(1.07) saturate(1.15) brightness(1.03) sepia(0.06);
     }
 
-    /* Affirmation - hidden until loaded */
-    .affirmation{
-      position:absolute;
-      left:16px;
-      right:16px;
-      bottom:18px;
-      padding:14px 16px;
-      text-align:center;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.18);
-      background:rgba(0,0,0,.35);
-      backdrop-filter:blur(8px);
-      -webkit-backdrop-filter:blur(8px);
-
-      opacity:0;
-      transform:translateY(10px);
-      transition:opacity .55s ease, transform .55s ease;
-      transition-delay: 0s; /* we set a delay after load */
-    }
-    .affirmation .main{
-      font-size:clamp(18px,2.2vw,26px);
-      font-weight:780;
-      margin:0;
-      line-height:1.15;
-    }
-    .affirmation .sub{
-      margin:6px 0 0;
-      color:rgba(255,255,255,.70);
-      font-size:13px;
-      line-height:1.25;
-    }
-
-    /* Controls: only show when loaded */
+    /* Controls: appear after load */
     .controls{
       position:absolute;
       top:14px;
@@ -153,22 +145,9 @@
       gap:10px;
       justify-content:flex-end;
       flex-wrap:wrap;
-      z-index:5;
+      z-index:20;
     }
 
-    /* Loaded state */
-    .loaded .uploadOverlay{
-      opacity:0;
-      pointer-events:none;
-      transform:scale(.985);
-    }
-    .loaded .controls{display:flex;}
-    .loaded .affirmation{
-      opacity:1;
-      transform:none;
-    }
-
-    /* Small hint for drag */
     .dragHint{
       position:absolute;
       top:14px;
@@ -177,30 +156,73 @@
       border-radius:12px;
       border:1px solid rgba(255,255,255,.14);
       background:rgba(0,0,0,.28);
-      color:rgba(255,255,255,.72);
+      color:rgba(255,255,255,.75);
       font-size:12px;
       display:none;
-      z-index:5;
+      z-index:20;
     }
-    .loaded .dragHint{display:block;}
+
+    /* Affirmation */
+    .affirmation{
+      position:absolute;
+      left:16px;
+      right:16px;
+      bottom:18px;
+      padding:16px 18px;
+      text-align:center;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(0,0,0,.34);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      z-index:30;
+
+      opacity:0;
+      transform:translateY(12px);
+      transition:opacity .65s ease, transform .65s ease;
+    }
+    .affirmation .main{
+      font-family:"Playfair Display", serif;
+      font-size:clamp(22px,2.6vw,34px);
+      font-weight:800;
+      margin:0;
+      line-height:1.12;
+      letter-spacing:.2px;
+    }
+    .affirmation .sub{
+      margin:8px 0 0;
+      color:rgba(255,255,255,.78);
+      font-size:13px;
+      line-height:1.25;
+    }
+
+    /* States */
+    .loaded .uploadOverlay{opacity:0;pointer-events:none;transform:scale(.985)}
+    .loaded .controls{display:flex}
+    .loaded .dragHint{display:block}
+
+    /* Affirmation only shows when we explicitly reveal it */
+    .reveal .affirmation{opacity:1;transform:none}
   </style>
 </head>
 
 <body>
   <div class="wrap">
     <div class="card">
-      <!-- Capture ONLY this poster area for PNG/PDF -->
       <div id="poster" class="poster">
         <div class="stage">
           <img id="photo" alt="" />
         </div>
 
+        <!-- grading overlays (captured in save) -->
+        <div class="grade"></div>
+        <div class="grain"></div>
+
         <div class="controls">
           <button type="button" id="savePng" disabled>Save PNG</button>
           <button type="button" id="savePdf" disabled>Save PDF</button>
         </div>
-
-        <div class="dragHint">Drag to reposition</div>
+        <div class="dragHint">Drag to reposition • Scroll/pinch to zoom</div>
 
         <div class="affirmation" id="affirmBox" aria-live="polite">
           <p class="main" id="affirmMain"></p>
@@ -210,13 +232,14 @@
         <div class="uploadOverlay">
           <div class="dropzone" id="dropzone">
             <h2>Add your photo</h2>
-            <p>Choose or drop an image. The message appears only after the photo loads.</p>
+            <p>Choose or drop an image. The message appears after the photo loads.</p>
             <div class="btnRow">
               <button type="button" id="chooseBtn">Choose image</button>
             </div>
             <input id="file" type="file" accept="image/*" hidden>
           </div>
         </div>
+
       </div>
     </div>
   </div>
@@ -232,14 +255,12 @@
     const chooseBtn = document.getElementById('chooseBtn');
     const dropzone = document.getElementById('dropzone');
 
-    const affirmBox = document.getElementById('affirmBox');
     const affirmMain = document.getElementById('affirmMain');
     const affirmSub  = document.getElementById('affirmSub');
 
     const savePngBtn = document.getElementById('savePng');
     const savePdfBtn = document.getElementById('savePdf');
 
-    // Rotate per reload: random pick on each page load (and we set on photo load too)
     const AFFIRMATIONS = [
       { main: "This person is loved and appreciated.", sub: "You’re doing better than you think." },
       { main: "This person matters more than they realise.", sub: "Your presence changes rooms." },
@@ -257,9 +278,13 @@
       affirmSub.textContent  = pick.sub;
     }
 
-    // Image transform state (drag reposition)
-    let scale = 1, x = 0, y = 0;
-    let dragging = false, lx = 0, ly = 0;
+    // Transform state
+    let scale = 1;            // 1.0 default
+    let x = 0, y = 0;         // translation
+    const MIN_SCALE = 0.6;
+    const MAX_SCALE = 3.0;
+
+    function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 
     function apply(){
       photo.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px) scale(${scale})`;
@@ -270,14 +295,21 @@
       apply();
     }
 
+    // Reveal control (6s after load)
+    let revealTimer = null;
+    function scheduleReveal(){
+      poster.classList.remove('reveal'); // ensure hidden first
+      if (revealTimer) clearTimeout(revealTimer);
+      revealTimer = setTimeout(() => {
+        poster.classList.add('reveal');
+      }, 6000);
+    }
+
     function markLoaded(){
       poster.classList.add('loaded');
-
-      // Gentle emotional beat: delay the affirmation fade-in slightly
-      affirmBox.style.transitionDelay = "450ms";
-
       savePngBtn.disabled = false;
       savePdfBtn.disabled = false;
+      scheduleReveal();
     }
 
     function loadImage(f){
@@ -297,46 +329,96 @@
     chooseBtn.onclick = () => file.click();
     file.onchange = e => loadImage(e.target.files[0]);
 
-    // Drag/drop upload
     dropzone.ondragover = e => e.preventDefault();
     dropzone.ondrop = e => {
       e.preventDefault();
       loadImage(e.dataTransfer.files[0]);
     };
 
-    // Drag reposition (pointer events)
+    // ----- Drag + Pinch Zoom (Pointer Events) -----
+    const pointers = new Map();
+    let lastPinchDist = null;
+
+    function getDist(a, b){
+      const dx = a.clientX - b.clientX;
+      const dy = a.clientY - b.clientY;
+      return Math.hypot(dx, dy);
+    }
+
     poster.addEventListener('pointerdown', (e) => {
       if(!poster.classList.contains('loaded')) return;
-      dragging = true;
-      lx = e.clientX;
-      ly = e.clientY;
+      pointers.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
       poster.setPointerCapture?.(e.pointerId);
+
+      // reset pinch reference if now 2 fingers
+      if (pointers.size === 2){
+        const [p1, p2] = Array.from(pointers.values());
+        lastPinchDist = getDist(p1, p2);
+      }
     });
 
     poster.addEventListener('pointermove', (e) => {
-      if(!dragging) return;
-      x += e.clientX - lx;
-      y += e.clientY - ly;
-      lx = e.clientX;
-      ly = e.clientY;
-      apply();
+      if(!pointers.has(e.pointerId)) return;
+
+      const prev = pointers.get(e.pointerId);
+      const curr = { clientX: e.clientX, clientY: e.clientY };
+      pointers.set(e.pointerId, curr);
+
+      if (pointers.size === 1){
+        // single finger / mouse drag -> translate
+        const dx = curr.clientX - prev.clientX;
+        const dy = curr.clientY - prev.clientY;
+        x += dx;
+        y += dy;
+        apply();
+      } else if (pointers.size === 2){
+        // pinch -> scale (and mild translate stabilisation)
+        const [p1, p2] = Array.from(pointers.values());
+        const dist = getDist(p1, p2);
+
+        if (lastPinchDist){
+          const ratio = dist / lastPinchDist;
+          // gentle scaling (ratio already good; clamp to avoid spikes)
+          scale = clamp(scale * ratio, MIN_SCALE, MAX_SCALE);
+          apply();
+        }
+        lastPinchDist = dist;
+      }
     });
 
-    poster.addEventListener('pointerup', (e) => {
-      dragging = false;
+    function endPointer(e){
+      pointers.delete(e.pointerId);
+      lastPinchDist = (pointers.size === 2) ? lastPinchDist : null;
       poster.releasePointerCapture?.(e.pointerId);
-    });
-    poster.addEventListener('pointercancel', () => dragging = false);
+    }
+    poster.addEventListener('pointerup', endPointer);
+    poster.addEventListener('pointercancel', endPointer);
 
-    // Save PNG
-    async function savePNG(){
-      // capture at higher resolution for quality
-      const canvas = await html2canvas(poster, {
+    // ----- Mouse wheel zoom (desktop) -----
+    poster.addEventListener('wheel', (e) => {
+      if(!poster.classList.contains('loaded')) return;
+      e.preventDefault();
+
+      // scroll up -> zoom in, scroll down -> zoom out
+      const delta = -Math.sign(e.deltaY);
+      const factor = (delta > 0) ? 1.08 : 0.92;
+
+      scale = clamp(scale * factor, MIN_SCALE, MAX_SCALE);
+      apply();
+    }, { passive: false });
+
+    // ----- Save PNG/PDF (captures poster with vignette/grade) -----
+    async function captureCanvas(){
+      // Ensure a consistent background in exports
+      return await html2canvas(poster, {
         scale: 2,
-        backgroundColor: null,
+        backgroundColor: "#0b0c10",
         useCORS: true
       });
+    }
 
+    async function savePNG(){
+      const canvas = await captureCanvas();
       canvas.toBlob((blob) => {
         if(!blob) return;
         const a = document.createElement('a');
@@ -349,18 +431,11 @@
       }, "image/png");
     }
 
-    // Save PDF (poster image placed into a single-page PDF)
     async function savePDF(){
-      const canvas = await html2canvas(poster, {
-        scale: 2,
-        backgroundColor: "#0b0c10",
-        useCORS: true
-      });
-
+      const canvas = await captureCanvas();
       const imgData = canvas.toDataURL("image/png");
       const { jsPDF } = window.jspdf;
 
-      // Create PDF with the same aspect ratio as the poster
       const pdf = new jsPDF({
         orientation: canvas.width >= canvas.height ? "landscape" : "portrait",
         unit: "pt",
@@ -374,8 +449,9 @@
     savePngBtn.addEventListener('click', savePNG);
     savePdfBtn.addEventListener('click', savePDF);
 
-    // Rotate per reload even before upload (doesn't show until loaded, but ready)
+    // prep an affirmation (hidden until reveal)
     pickAffirmation();
+    apply();
   </script>
 </body>
 </html>
