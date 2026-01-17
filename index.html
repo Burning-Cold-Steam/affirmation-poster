@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Poster</title>
 
-  <!-- Softer, more “social” typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;800&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
@@ -20,7 +19,6 @@
       --shadow:0 10px 30px rgba(0,0,0,.55);
       --radius:18px;
     }
-
     *{box-sizing:border-box}
     body{
       margin:0;
@@ -31,7 +29,6 @@
       color:var(--text);
       font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     }
-
     .wrap{width:min(960px,92vw)}
     .card{
       background:linear-gradient(180deg,var(--panel),rgba(255,255,255,.03));
@@ -41,36 +38,30 @@
       overflow:hidden;
     }
 
-    /* Poster */
+    /* ✅ Portrait by default (4:5). Also keep it from exceeding the viewport height. */
     .poster{
       width:100%;
-      aspect-ratio:1/1;
+      aspect-ratio:4/5;
+      max-height:86vh;
       position:relative;
       background:rgba(0,0,0,.25);
       user-select:none;
-      touch-action:none; /* critical for pinch/drag */
+      touch-action:none;
       overflow:hidden;
     }
-    @media(max-width:700px){
-      .poster{aspect-ratio:4/5;}
-    }
+    /* Optional: on very large desktops you can go slightly less tall if you want
+       @media (min-width: 1100px){ .poster{aspect-ratio:3/4;} }
+    */
 
-    /* A subtle “social media” vignette + film grade overlay */
+    /* Social-ish vignette + soft grade */
     .grade{
-      position:absolute;
-      inset:0;
-      pointer-events:none;
-      z-index:3;
+      position:absolute; inset:0; pointer-events:none; z-index:3;
       background:
         radial-gradient(120% 110% at 50% 45%, rgba(0,0,0,0.00) 45%, rgba(0,0,0,0.35) 100%),
         linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.12));
-      mix-blend-mode: normal;
     }
     .grain{
-      position:absolute;
-      inset:0;
-      pointer-events:none;
-      z-index:4;
+      position:absolute; inset:0; pointer-events:none; z-index:4;
       opacity:.08;
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
       background-size:180px 180px;
@@ -78,10 +69,8 @@
 
     /* Upload overlay */
     .uploadOverlay{
-      position:absolute;
-      inset:0;
-      display:grid;
-      place-items:center;
+      position:absolute; inset:0;
+      display:grid; place-items:center;
       padding:22px;
       background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.35));
       transition:opacity .25s ease, transform .25s ease;
@@ -97,9 +86,7 @@
     }
     .dropzone h2{margin:0 0 8px;font-size:18px;font-weight:750}
     .dropzone p{margin:0 0 14px;color:var(--muted);font-size:14px;line-height:1.35}
-
     .btnRow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-
     button{
       border:1px solid rgba(255,255,255,.16);
       background:rgba(255,255,255,.08);
@@ -115,45 +102,24 @@
     button:active{transform:translateY(1px)}
     button:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
-    /* Stage */
-    .stage{
-      position:absolute;
-      inset:0;
-      overflow:hidden;
-      z-index:1;
-    }
+    .stage{position:absolute; inset:0; overflow:hidden; z-index:1;}
     .stage img{
-      position:absolute;
-      left:50%;
-      top:50%;
+      position:absolute; left:50%; top:50%;
       transform-origin:center;
       max-width:none;
       pointer-events:none;
       -webkit-user-drag:none;
-
-      /* “Social” grade applied directly to the photo */
       filter: contrast(1.07) saturate(1.15) brightness(1.03) sepia(0.06);
     }
 
-    /* Controls: appear after load */
     .controls{
-      position:absolute;
-      top:14px;
-      left:14px;
-      right:14px;
-      display:none;
-      gap:10px;
-      justify-content:flex-end;
-      flex-wrap:wrap;
+      position:absolute; top:14px; left:14px; right:14px;
+      display:none; gap:10px; justify-content:flex-end; flex-wrap:wrap;
       z-index:20;
     }
-
     .dragHint{
-      position:absolute;
-      top:14px;
-      left:14px;
-      padding:8px 10px;
-      border-radius:12px;
+      position:absolute; top:14px; left:14px;
+      padding:8px 10px; border-radius:12px;
       border:1px solid rgba(255,255,255,.14);
       background:rgba(0,0,0,.28);
       color:rgba(255,255,255,.75);
@@ -162,12 +128,8 @@
       z-index:20;
     }
 
-    /* Affirmation */
     .affirmation{
-      position:absolute;
-      left:16px;
-      right:16px;
-      bottom:18px;
+      position:absolute; left:16px; right:16px; bottom:18px;
       padding:16px 18px;
       text-align:center;
       border-radius:18px;
@@ -183,7 +145,7 @@
     }
     .affirmation .main{
       font-family:"Playfair Display", serif;
-      font-size:clamp(22px,2.6vw,34px);
+      font-size:clamp(24px,2.8vw,36px);
       font-weight:800;
       margin:0;
       line-height:1.12;
@@ -196,12 +158,9 @@
       line-height:1.25;
     }
 
-    /* States */
     .loaded .uploadOverlay{opacity:0;pointer-events:none;transform:scale(.985)}
     .loaded .controls{display:flex}
     .loaded .dragHint{display:block}
-
-    /* Affirmation only shows when we explicitly reveal it */
     .reveal .affirmation{opacity:1;transform:none}
   </style>
 </head>
@@ -214,7 +173,6 @@
           <img id="photo" alt="" />
         </div>
 
-        <!-- grading overlays (captured in save) -->
         <div class="grade"></div>
         <div class="grain"></div>
 
@@ -239,12 +197,10 @@
             <input id="file" type="file" accept="image/*" hidden>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 
-  <!-- Libraries for saving -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
@@ -271,7 +227,6 @@
       { main: "This person is enough.", sub: "Right now. As-is." },
       { main: "This person is seen.", sub: "Even when they feel invisible." }
     ];
-
     function pickAffirmation(){
       const pick = AFFIRMATIONS[Math.floor(Math.random() * AFFIRMATIONS.length)];
       affirmMain.textContent = pick.main;
@@ -279,10 +234,12 @@
     }
 
     // Transform state
-    let scale = 1;            // 1.0 default
-    let x = 0, y = 0;         // translation
-    const MIN_SCALE = 0.6;
-    const MAX_SCALE = 3.0;
+    let scale = 1, x = 0, y = 0;
+
+    // We compute a sensible base scale on load (contain), then allow zooming out below it.
+    let baseScale = 1;
+    let minScale = 0.2;     // will become baseScale * 0.35
+    let maxScale = 3.0;
 
     function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 
@@ -290,19 +247,36 @@
       photo.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px) scale(${scale})`;
     }
 
-    function resetTransform(){
-      scale = 1; x = 0; y = 0;
+    function computeContainScale(){
+      // Fit entire photo inside poster (no cropping), good starting point.
+      const pw = poster.clientWidth;
+      const ph = poster.clientHeight;
+      const iw = photo.naturalWidth || 1;
+      const ih = photo.naturalHeight || 1;
+
+      const contain = Math.min(pw / iw, ph / ih);
+      // tiny padding so it doesn't touch edges immediately
+      return contain * 0.98;
+    }
+
+    function resetToContain(){
+      x = 0; y = 0;
+      baseScale = computeContainScale();
+      scale = baseScale;
+
+      // ✅ allow zooming out BELOW "contain" to create blank margins
+      minScale = baseScale * 0.35;   // plenty of margin space
+      maxScale = Math.max(3.0, baseScale * 6);
+
       apply();
     }
 
-    // Reveal control (6s after load)
+    // Reveal control (6s)
     let revealTimer = null;
     function scheduleReveal(){
-      poster.classList.remove('reveal'); // ensure hidden first
+      poster.classList.remove('reveal');
       if (revealTimer) clearTimeout(revealTimer);
-      revealTimer = setTimeout(() => {
-        poster.classList.add('reveal');
-      }, 6000);
+      revealTimer = setTimeout(() => poster.classList.add('reveal'), 6000);
     }
 
     function markLoaded(){
@@ -319,7 +293,7 @@
       const url = URL.createObjectURL(f);
       photo.onload = () => {
         photo.alt = "User photo";
-        resetTransform();
+        resetToContain();   // ✅ no longer starts overly zoomed
         markLoaded();
         URL.revokeObjectURL(url);
       };
@@ -330,12 +304,9 @@
     file.onchange = e => loadImage(e.target.files[0]);
 
     dropzone.ondragover = e => e.preventDefault();
-    dropzone.ondrop = e => {
-      e.preventDefault();
-      loadImage(e.dataTransfer.files[0]);
-    };
+    dropzone.ondrop = e => { e.preventDefault(); loadImage(e.dataTransfer.files[0]); };
 
-    // ----- Drag + Pinch Zoom (Pointer Events) -----
+    // ----- Drag + Pinch Zoom -----
     const pointers = new Map();
     let lastPinchDist = null;
 
@@ -350,7 +321,6 @@
       pointers.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
       poster.setPointerCapture?.(e.pointerId);
 
-      // reset pinch reference if now 2 fingers
       if (pointers.size === 2){
         const [p1, p2] = Array.from(pointers.values());
         lastPinchDist = getDist(p1, p2);
@@ -365,21 +335,16 @@
       pointers.set(e.pointerId, curr);
 
       if (pointers.size === 1){
-        // single finger / mouse drag -> translate
-        const dx = curr.clientX - prev.clientX;
-        const dy = curr.clientY - prev.clientY;
-        x += dx;
-        y += dy;
+        x += curr.clientX - prev.clientX;
+        y += curr.clientY - prev.clientY;
         apply();
       } else if (pointers.size === 2){
-        // pinch -> scale (and mild translate stabilisation)
         const [p1, p2] = Array.from(pointers.values());
         const dist = getDist(p1, p2);
 
         if (lastPinchDist){
           const ratio = dist / lastPinchDist;
-          // gentle scaling (ratio already good; clamp to avoid spikes)
-          scale = clamp(scale * ratio, MIN_SCALE, MAX_SCALE);
+          scale = clamp(scale * ratio, minScale, maxScale);
           apply();
         }
         lastPinchDist = dist;
@@ -388,28 +353,24 @@
 
     function endPointer(e){
       pointers.delete(e.pointerId);
-      lastPinchDist = (pointers.size === 2) ? lastPinchDist : null;
+      if (pointers.size < 2) lastPinchDist = null;
       poster.releasePointerCapture?.(e.pointerId);
     }
     poster.addEventListener('pointerup', endPointer);
     poster.addEventListener('pointercancel', endPointer);
 
-    // ----- Mouse wheel zoom (desktop) -----
+    // ----- Mouse wheel zoom -----
     poster.addEventListener('wheel', (e) => {
       if(!poster.classList.contains('loaded')) return;
       e.preventDefault();
-
-      // scroll up -> zoom in, scroll down -> zoom out
       const delta = -Math.sign(e.deltaY);
       const factor = (delta > 0) ? 1.08 : 0.92;
-
-      scale = clamp(scale * factor, MIN_SCALE, MAX_SCALE);
+      scale = clamp(scale * factor, minScale, maxScale);
       apply();
     }, { passive: false });
 
-    // ----- Save PNG/PDF (captures poster with vignette/grade) -----
+    // ----- Save PNG / PDF -----
     async function captureCanvas(){
-      // Ensure a consistent background in exports
       return await html2canvas(poster, {
         scale: 2,
         backgroundColor: "#0b0c10",
@@ -441,7 +402,6 @@
         unit: "pt",
         format: [canvas.width, canvas.height]
       });
-
       pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
       pdf.save("poster.pdf");
     }
@@ -449,9 +409,24 @@
     savePngBtn.addEventListener('click', savePNG);
     savePdfBtn.addEventListener('click', savePDF);
 
-    // prep an affirmation (hidden until reveal)
+    // prep affirmation (still hidden)
     pickAffirmation();
     apply();
+
+    // If device rotates / resizes, keep the same “contain” feel without jumping too much:
+    window.addEventListener('resize', () => {
+      if (!poster.classList.contains('loaded')) return;
+      // Recompute base scale, but preserve user's relative zoom level from base
+      const prevBase = baseScale || 1;
+      const rel = scale / prevBase;
+
+      baseScale = computeContainScale();
+      minScale = baseScale * 0.35;
+      maxScale = Math.max(3.0, baseScale * 6);
+
+      scale = clamp(baseScale * rel, minScale, maxScale);
+      apply();
+    });
   </script>
 </body>
 </html>
