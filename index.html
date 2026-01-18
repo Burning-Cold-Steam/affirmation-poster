@@ -38,7 +38,7 @@
       overflow:hidden;
     }
 
-    /* Desktop: 4:5. Mobile: 9:16 and tall. */
+    /* Desktop: 4:5. Mobile: 9:16 (tall). */
     .poster{
       width:min(720px, 94vw);
       aspect-ratio:4/5;
@@ -64,6 +64,7 @@
       max-width:none;
       pointer-events:none;
       -webkit-user-drag:none;
+      /* mild “social” grade */
       filter: contrast(1.07) saturate(1.15) brightness(1.03) sepia(0.06);
     }
 
@@ -174,7 +175,16 @@
     .reveal .affirmation{opacity:1;transform:none}
     .retryHidden #retryBtn{display:none}
 
-    /* Busy overlay (for slow actions) */
+    /* During export, force-hide all UI (prevents capture). */
+    .exporting .controls,
+    .exporting .hint,
+    .exporting .uploadOverlay,
+    .exporting .busyOverlay,
+    .exporting .saveViewer {
+      display:none !important;
+    }
+
+    /* Busy overlay: visible to the user, but EXCLUDED from capture via data-html2canvas-ignore */
     .busyOverlay{
       position:absolute; inset:0;
       display:grid; place-items:center;
@@ -207,7 +217,7 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* In-page save viewer (works everywhere) */
+    /* In-page save viewer for iOS fallback (excluded from capture) */
     .saveViewer{
       position:fixed; inset:0;
       z-index:9999;
@@ -230,26 +240,12 @@
       display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
       max-width:900px; margin:0 auto;
     }
-    .svText{
-      max-width:620px;
-    }
+    .svText{max-width:620px;}
     .svText h3{margin:0 0 4px; font-size:14px; font-weight:850}
     .svText p{margin:0; font-size:12px; color:rgba(255,255,255,.78); line-height:1.35}
-    .svImgWrap{
-      display:grid;
-      place-items:center;
-      max-width:900px;
-      margin:0 auto 30px;
-    }
-    .svImg{
-      max-width:100%;
-      height:auto;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.12);
-    }
-    .svBtns{
-      display:flex; gap:10px; flex-wrap:wrap;
-    }
+    .svImgWrap{display:grid;place-items:center;max-width:900px;margin:0 auto 30px;}
+    .svImg{max-width:100%;height:auto;border-radius:14px;border:1px solid rgba(255,255,255,.12)}
+    .svBtns{display:flex;gap:10px;flex-wrap:wrap}
   </style>
 </head>
 
@@ -265,22 +261,22 @@
         <div class="grade"></div>
         <div class="grain"></div>
 
-        <div class="controls">
+        <!-- UI (ignored by html2canvas) -->
+        <div class="controls" data-html2canvas-ignore="true">
           <button type="button" id="downloadPng" disabled>Download PNG</button>
           <button type="button" id="copyPng" disabled>Copy PNG</button>
-          <button type="button" id="saveViewBtn" disabled>Save / Share</button>
           <button type="button" id="fitBtn" disabled>Fit</button>
           <button type="button" id="retryBtn" disabled>Retry</button>
         </div>
 
-        <div class="hint" id="hint">Drag to reposition • Scroll/pinch to zoom</div>
+        <div class="hint" id="hint" data-html2canvas-ignore="true">Drag to reposition • Scroll/pinch to zoom</div>
 
         <div class="affirmation" aria-live="polite">
           <p class="main" id="affirmMain"></p>
           <p class="sub" id="affirmSub"></p>
         </div>
 
-        <div class="uploadOverlay">
+        <div class="uploadOverlay" data-html2canvas-ignore="true">
           <div class="dropzone" id="dropzone">
             <h2>Add your photo</h2>
             <p>Choose or drop an image. The message appears after the photo loads.</p>
@@ -291,10 +287,10 @@
           </div>
         </div>
 
-        <div class="busyOverlay" id="busy">
+        <div class="busyOverlay" id="busy" data-html2canvas-ignore="true">
           <div class="busyCard">
             <p class="busyTitle" id="busyTitle">Working…</p>
-            <p class="busyText" id="busyText">This can take a moment on some phones.</p>
+            <p class="busyText" id="busyText">This can take a moment.</p>
             <div class="spinner"></div>
           </div>
         </div>
@@ -303,16 +299,15 @@
     </div>
   </div>
 
-  <!-- In-page Save Viewer -->
-  <div class="saveViewer" id="saveViewer" aria-modal="true" role="dialog">
+  <!-- iOS save viewer (ignored by html2canvas) -->
+  <div class="saveViewer" id="saveViewer" data-html2canvas-ignore="true" aria-modal="true" role="dialog">
     <div class="svTop">
       <div class="svRow">
         <div class="svText">
           <h3>Save your poster</h3>
           <p>
-            iPhone/iPad: press and hold the image → <b>Save to Photos</b> / <b>Share</b>.
+            iPhone/iPad: press and hold the image → <b>Save to Photos</b> / <b>Share</b>.<br>
             Android: long-press → <b>Download image</b> or share.
-            Desktop: right-click → <b>Save image as…</b>
           </p>
         </div>
         <div class="svBtns">
@@ -329,7 +324,6 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <script>
-    // Elements
     const poster = document.getElementById('poster');
     const photo = document.getElementById('photo');
     const fileInput = document.getElementById('file');
@@ -341,7 +335,6 @@
 
     const downloadBtn = document.getElementById('downloadPng');
     const copyBtn = document.getElementById('copyPng');
-    const saveViewBtn = document.getElementById('saveViewBtn');
     const fitBtn = document.getElementById('fitBtn');
     const retryBtn = document.getElementById('retryBtn');
 
@@ -356,12 +349,10 @@
 
     const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent) && !window.MSStream;
 
-    // Track object URL for memory cleanup
+    // image URL cleanup
     let currentObjectURL = null;
 
-    // -------------------------
-    // Time-of-day affirmations (30 total)
-    // -------------------------
+    // ---- affirmations (30 total by day-part) ----
     const MORNING = [
       { main: "This person is allowed a gentle start.", sub: "You don’t need to rush to be worthy." },
       { main: "This person is doing better than they think.", sub: "Even small steps count." },
@@ -408,7 +399,6 @@
       if (h >= 17 && h < 22) return "evening";
       return "late";
     }
-
     function pickAffirmation(){
       const p = dayPart();
       const pool = (p === "morning") ? MORNING
@@ -420,9 +410,7 @@
       affirmSub.textContent  = pick.sub;
     }
 
-    // -------------------------
-    // Transform state (fit + margins)
-    // -------------------------
+    // ---- transform state ----
     let scale = 1, x = 0, y = 0;
     let baseScale = 1, minScale = 0.2, maxScale = 3.0;
 
@@ -430,7 +418,6 @@
     function apply(){
       photo.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px) scale(${scale})`;
     }
-
     function computeContainScale(){
       const pw = poster.clientWidth;
       const ph = poster.clientHeight;
@@ -439,6 +426,7 @@
       return Math.min(pw / iw, ph / ih) * 0.98;
     }
 
+    // ---- gesture baseline ----
     const pointers = new Map();
     let lastPinchDist = null;
     function resetGestureBaseline(){
@@ -456,13 +444,7 @@
       resetGestureBaseline();
     }
 
-    // -------------------------
-    // Timers (ONLY from initial image load)
-    // - hint hides after 5s
-    // - affirmation reveals after 6s
-    // - retry appears after 20s
-    // Retry does NOT restart these.
-    // -------------------------
+    // ---- timers (one-time from initial image load) ----
     let timersStarted = false;
     function startOneTimeTimers(){
       if (timersStarted) return;
@@ -477,9 +459,7 @@
       setTimeout(() => poster.classList.remove('retryHidden'), 20000);
     }
 
-    // -------------------------
-    // Busy overlay helpers
-    // -------------------------
+    // ---- busy overlay ----
     function showBusy(title, text){
       busyTitle.textContent = title || "Working…";
       busyText.textContent = text || "This can take a moment.";
@@ -489,9 +469,7 @@
       busy.classList.remove('show');
     }
 
-    // -------------------------
-    // Upload handling (fast on iOS)
-    // -------------------------
+    // ---- upload ----
     chooseBtn.addEventListener('click', () => fileInput.click());
 
     fileInput.addEventListener('change', (e) => {
@@ -506,7 +484,14 @@
       if (f) loadImageFast(f);
     });
 
-    async function loadImageFast(fileObj){
+    function enableControls(){
+      downloadBtn.disabled = false;
+      copyBtn.disabled = false;
+      fitBtn.disabled = false;
+      retryBtn.disabled = false;
+    }
+
+    function loadImageFast(fileObj){
       pickAffirmation();
 
       if (currentObjectURL) {
@@ -514,21 +499,13 @@
         currentObjectURL = null;
       }
 
-      // Object URL loads faster than base64 on iOS
       currentObjectURL = URL.createObjectURL(fileObj);
-
       photo.onload = () => {
         poster.classList.add('loaded');
-        downloadBtn.disabled = false;
-        copyBtn.disabled = false;
-        saveViewBtn.disabled = false;
-        fitBtn.disabled = false;
-        retryBtn.disabled = false;
-
+        enableControls();
         fitToScreen();
         startOneTimeTimers();
       };
-
       photo.src = currentObjectURL;
       photo.alt = "User photo";
     }
@@ -540,12 +517,10 @@
 
     retryBtn.addEventListener('click', () => {
       if(!poster.classList.contains('loaded')) return;
-      pickAffirmation(); // does not affect reveal schedule
+      pickAffirmation(); // no timer reset
     });
 
-    // -------------------------
-    // Gestures: stable iOS pinch/drag + desktop wheel
-    // -------------------------
+    // ---- gestures (iOS damped) ----
     const DRAG_SENS = isIOS ? 0.45 : 1.0;
     const PINCH_SENS = isIOS ? 0.18 : 1.0;
     const PINCH_DEADZONE = isIOS ? 0.012 : 0.0;
@@ -609,8 +584,8 @@
         if (Math.abs(rawRatio - 1) < PINCH_DEADZONE) return;
 
         const intendedRatio = 1 + ((rawRatio - 1) * PINCH_SENS);
-
         let nextScale = scale * intendedRatio;
+
         const delta = nextScale - scale;
         const clampedDelta = clamp(delta, -MAX_SCALE_STEP, MAX_SCALE_STEP);
 
@@ -650,106 +625,112 @@
       resetGestureBaseline();
     });
 
-    // -------------------------
-    // Export: In-page save viewer (reliable on iOS/Android/PC)
-    // -------------------------
-    async function captureCanvas(){
-      return await html2canvas(poster, {
-        scale: 2,
-        backgroundColor: "#0b0c10",
-        useCORS: true
-      });
+    // ---- export (CLEAN: ignores UI) ----
+    async function captureCanvasClean(){
+      // extra safety: force hide UI via class while capturing
+      poster.classList.add('exporting');
+      try{
+        return await html2canvas(poster, {
+          scale: 2,
+          backgroundColor: "#0b0c10",
+          useCORS: true,
+          ignoreElements: (el) => el?.getAttribute?.('data-html2canvas-ignore') === 'true'
+        });
+      } finally {
+        poster.classList.remove('exporting');
+      }
     }
 
     function openSaveViewer(dataUrl){
       svImg.src = dataUrl;
       svDownloadLink.href = dataUrl;
       saveViewer.classList.add('show');
-      // prevent background scroll quirks on iOS
       document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
     }
-
     function closeSaveViewer(){
       saveViewer.classList.remove('show');
       svImg.src = "";
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
     }
-
     svClose.addEventListener('click', closeSaveViewer);
     saveViewer.addEventListener('click', (e) => {
-      // click outside image area closes
       if (e.target === saveViewer) closeSaveViewer();
     });
 
-    async function renderAndShow(){
-      if (!poster.classList.contains('loaded')) return;
-      showBusy("Creating image…", "On some phones this can take a moment with high-res photos.");
-      try{
-        const canvas = await captureCanvas();
-        const dataUrl = canvas.toDataURL("image/png");
-        openSaveViewer(dataUrl);
-      } finally {
-        hideBusy();
+    async function downloadPNG(){
+      if(!poster.classList.contains('loaded')) return;
+
+      // iOS: reliably show save viewer instead of fighting downloads
+      if (isIOS){
+        showBusy("Creating image…", "Press and hold the image to save to Photos.");
+        try{
+          const canvas = await captureCanvasClean();
+          openSaveViewer(canvas.toDataURL("image/png"));
+        } finally {
+          hideBusy();
+        }
+        return;
       }
-    }
-
-    // Buttons:
-    // - Save/Share always opens the viewer.
-    // - Download/Copy attempt their normal actions on desktop, but still fall back to viewer.
-    saveViewBtn.addEventListener('click', renderAndShow);
-
-    downloadBtn.addEventListener('click', async () => {
-      if (!poster.classList.contains('loaded')) return;
-
-      // Mobile: don’t fight it—use viewer
-      if (isIOS || /Android/i.test(navigator.userAgent)) return renderAndShow();
 
       showBusy("Preparing download…", "Hang tight.");
       try{
-        const canvas = await captureCanvas();
+        const canvas = await captureCanvasClean();
         const dataUrl = canvas.toDataURL("image/png");
 
-        // Try download (desktop)
         const a = document.createElement('a');
         a.href = dataUrl;
         a.download = "poster.png";
         document.body.appendChild(a);
         a.click();
         a.remove();
-      } catch {
-        // fallback
-        await renderAndShow();
       } finally {
         hideBusy();
       }
-    });
+    }
 
-    copyBtn.addEventListener('click', async () => {
-      if (!poster.classList.contains('loaded')) return;
+    async function copyPNG(){
+      if(!poster.classList.contains('loaded')) return;
 
-      // Mobile: use viewer
-      if (isIOS || /Android/i.test(navigator.userAgent)) return renderAndShow();
-
-      showBusy("Copying image…", "If blocked, we’ll show a save screen.");
-      try{
-        const canvas = await captureCanvas();
-        const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
-        if (navigator.clipboard && window.ClipboardItem && blob) {
-          await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-          alert("Copied as PNG. Paste into apps that support image paste.");
-          return;
+      // iOS: show viewer
+      if (isIOS){
+        showBusy("Creating image…", "Press and hold the image to save/share.");
+        try{
+          const canvas = await captureCanvasClean();
+          openSaveViewer(canvas.toDataURL("image/png"));
+        } finally {
+          hideBusy();
         }
-        await renderAndShow();
-      } catch {
-        await renderAndShow();
+        return;
+      }
+
+      showBusy("Copying image…", "If blocked, a save screen will open.");
+      try{
+        const canvas = await captureCanvasClean();
+        const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+
+        if (navigator.clipboard && window.ClipboardItem && blob) {
+          try{
+            await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+            alert("Copied as PNG. Paste into apps that support image paste.");
+            return;
+          } catch {
+            // fall through
+          }
+        }
+
+        // fallback: show viewer
+        openSaveViewer(canvas.toDataURL("image/png"));
       } finally {
         hideBusy();
       }
-    });
+    }
 
-    // Init
+    downloadBtn.addEventListener('click', downloadPNG);
+    copyBtn.addEventListener('click', copyPNG);
+
+    // init
     poster.classList.add('retryHidden');
     pickAffirmation();
     apply();
