@@ -12,11 +12,10 @@
   <style>
     :root{
       --bg:#0b0c10;
-      --panel:rgba(255,255,255,.06);
       --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.65);
-      --border:rgba(255,255,255,.14);
-      --shadow:0 10px 30px rgba(0,0,0,.55);
+      --muted:rgba(255,255,255,.72);
+      --border:rgba(255,255,255,.16);
+      --shadow:0 14px 40px rgba(0,0,0,.55);
       --radius:18px;
     }
     *{box-sizing:border-box}
@@ -25,38 +24,38 @@
       min-height:100vh;
       display:grid;
       place-items:center;
-      background:radial-gradient(1000px 700px at 30% 20%,#182033 0%,var(--bg) 55%);
-      color:var(--text);
+      background:radial-gradient(900px 700px at 30% 20%,#1a2140 0%,var(--bg) 55%);
       font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color:var(--text);
     }
-    .wrap{width:min(960px,94vw)}
+
+    .wrap{width:min(980px,94vw)}
     .card{
-      background:linear-gradient(180deg,var(--panel),rgba(255,255,255,.03));
+      background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));
       border:1px solid var(--border);
       border-radius:var(--radius);
       box-shadow:var(--shadow);
       overflow:hidden;
+      padding:14px;
+      display:grid;
+      place-items:center;
     }
 
-    /* Poster frame: Desktop 4:5, Mobile 9:16 */
+    /* Portrait-first poster: 9:16 always */
     .poster{
-      width:min(720px, 94vw);
-      aspect-ratio:4/5;
+      width:min(520px, 96vw);
+      aspect-ratio:9/16;
       position:relative;
       background:rgba(0,0,0,.25);
-      user-select:none;
+      border-radius:16px;
       overflow:hidden;
+      user-select:none;
       touch-action:none;
     }
-    @media(max-width:700px){
-      .poster{
-        width:min(96vw, 520px);
-        aspect-ratio:9/16;
-        max-height:92vh;
-      }
+    @media(min-width:900px){
+      .poster{ width:min(560px, 50vw); }
     }
 
-    /* Image stage */
     .stage{position:absolute; inset:0; overflow:hidden; z-index:1;}
     .stage img{
       position:absolute;
@@ -65,16 +64,14 @@
       max-width:none;
       pointer-events:none;
       -webkit-user-drag:none;
-      /* subtle social-style grade */
-      filter: contrast(1.07) saturate(1.15) brightness(1.03) sepia(0.06);
+      filter: contrast(1.07) saturate(1.14) brightness(1.02) sepia(0.06);
     }
 
-    /* Vignette + film */
-    .grade{
+    .vignette{
       position:absolute; inset:0; pointer-events:none; z-index:3;
       background:
-        radial-gradient(120% 110% at 50% 45%, rgba(0,0,0,0.00) 45%, rgba(0,0,0,0.40) 100%),
-        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.12));
+        radial-gradient(120% 110% at 50% 45%, rgba(0,0,0,0.00) 45%, rgba(0,0,0,0.42) 100%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.10));
     }
     .grain{
       position:absolute; inset:0; pointer-events:none; z-index:4;
@@ -83,14 +80,45 @@
       background-size:180px 180px;
     }
 
-    /* Upload overlay */
+    /* Affirmation (included in export) */
+    .affirmation{
+      position:absolute; left:16px; right:16px;
+      bottom:18px;
+      padding:16px 18px;
+      text-align:center;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(0,0,0,.34);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      z-index:10;
+
+      opacity:0;
+      transform:translateY(12px);
+      transition:opacity .65s ease, transform .65s ease;
+    }
+    .reveal .affirmation{opacity:1; transform:none;}
+    .affirmation .main{
+      font-family:"Playfair Display", serif;
+      font-size:clamp(26px,3.2vw,38px);
+      font-weight:800;
+      margin:0;
+      line-height:1.12;
+    }
+    .affirmation .sub{
+      margin:8px 0 0;
+      color:rgba(255,255,255,.78);
+      font-size:13px;
+      line-height:1.25;
+    }
+
+    /* Upload overlay (NOT in export) */
     .uploadOverlay{
       position:absolute; inset:0;
       display:grid; place-items:center;
       padding:22px;
       background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.35));
-      transition:opacity .25s ease, transform .25s ease;
-      z-index:10;
+      z-index:30;
     }
     .dropzone{
       width:min(520px,92%);
@@ -102,7 +130,6 @@
     }
     .dropzone h2{margin:0 0 8px;font-size:18px;font-weight:750}
     .dropzone p{margin:0 0 14px;color:var(--muted);font-size:14px;line-height:1.35}
-    .btnRow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 
     button{
       border:1px solid rgba(255,255,255,.16);
@@ -119,103 +146,34 @@
     button:active{transform:translateY(1px)}
     button:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
-    /* Controls: desktop top, mobile bottom */
+    /* Controls (NOT in export) */
     .controls{
       position:absolute;
-      top:14px; left:14px; right:14px;
+      left:14px; right:14px;
+      bottom:calc(14px + env(safe-area-inset-bottom));
       display:none;
       gap:10px;
-      justify-content:flex-end;
+      justify-content:center;
       flex-wrap:wrap;
-      z-index:20;
+      z-index:40;
     }
-    @media(max-width:700px){
-      .controls{
-        top:auto;
-        bottom:calc(14px + env(safe-area-inset-bottom));
-        left:14px;
-        right:14px;
-        justify-content:center;
-      }
-    }
-
-    /* Hint: desktop top-left, mobile above bottom controls */
-    .hint{
-      position:absolute;
-      top:14px; left:14px;
-      padding:8px 10px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(0,0,0,.28);
-      color:rgba(255,255,255,.78);
-      font-size:12px;
-      z-index:19;
-      opacity:1;
-      transition:opacity .35s ease;
-    }
-    @media(max-width:700px){
-      .hint{
-        top:auto;
-        left:14px;
-        right:14px;
-        text-align:center;
-        z-index:21;
-        bottom:calc(64px + env(safe-area-inset-bottom));
-      }
-    }
-    .hintHidden .hint{opacity:0; pointer-events:none;}
-
-    /* Affirmation: reveal after delay; lifted on mobile to avoid controls */
-    .affirmation{
-      position:absolute; left:16px; right:16px;
-      bottom:18px;
-      padding:16px 18px;
-      text-align:center;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,.18);
-      background:rgba(0,0,0,.34);
-      backdrop-filter:blur(10px);
-      -webkit-backdrop-filter:blur(10px);
-      z-index:30;
-
-      opacity:0;
-      transform:translateY(12px);
-      transition:opacity .65s ease, transform .65s ease;
-    }
-    @media(max-width:700px){
-      .affirmation{
-        bottom:calc(96px + env(safe-area-inset-bottom));
-      }
-    }
-    .affirmation .main{
-      font-family:"Playfair Display", serif;
-      font-size:clamp(26px,3.1vw,38px);
-      font-weight:800;
-      margin:0;
-      line-height:1.12;
-      letter-spacing:.2px;
-    }
-    .affirmation .sub{
-      margin:8px 0 0;
-      color:rgba(255,255,255,.78);
-      font-size:13px;
-      line-height:1.25;
-    }
-
-    .loaded .uploadOverlay{opacity:0;pointer-events:none;transform:scale(.985)}
     .loaded .controls{display:flex}
-    .reveal .affirmation{opacity:1;transform:none}
-    .retryHidden #retryBtn{display:none}
+    @media(min-width:900px){
+      .controls{
+        top:14px; bottom:auto;
+        justify-content:flex-end;
+      }
+    }
 
-    /* Busy overlay (export) */
+    /* Busy overlay (NOT in export) */
     .busyOverlay{
       position:absolute; inset:0;
       display:grid; place-items:center;
-      z-index:60;
-      pointer-events:none;
-      opacity:0;
-      transition:opacity .15s ease;
+      z-index:50;
       background:rgba(0,0,0,.35);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .15s ease;
     }
     .busyOverlay.show{opacity:1; pointer-events:auto;}
     .busyCard{
@@ -223,7 +181,7 @@
       border:1px solid rgba(255,255,255,.18);
       background:rgba(0,0,0,.45);
       border-radius:16px;
-      padding:16px 16px;
+      padding:16px;
       text-align:center;
       backdrop-filter:blur(10px);
       -webkit-backdrop-filter:blur(10px);
@@ -240,17 +198,18 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* In-page save viewer (mobile-safe, no popups) */
-    .saveViewer{
+    /* In-page preview for mobile saving/sharing */
+    .preview{
       position:fixed; inset:0;
-      z-index:9999;
       background:rgba(0,0,0,.92);
       display:none;
+      flex-direction:column;
+      z-index:9999;
       padding:14px;
       overflow:auto;
     }
-    .saveViewer.show{display:block;}
-    .svTop{
+    .preview.show{display:flex}
+    .pvTop{
       position:sticky; top:0;
       background:rgba(0,0,0,.82);
       backdrop-filter:blur(10px);
@@ -259,26 +218,15 @@
       padding:10px 0 12px;
       margin-bottom:12px;
     }
-    .svRow{
+    .pvRow{
       display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
       max-width:900px; margin:0 auto;
     }
-    .svText{max-width:620px;}
-    .svText h3{margin:0 0 4px; font-size:14px; font-weight:850}
-    .svText p{margin:0; font-size:12px; color:rgba(255,255,255,.78); line-height:1.35}
-    .svImgWrap{
-      display:grid;
-      place-items:center;
-      max-width:900px;
-      margin:0 auto 30px;
-    }
-    .svImg{
-      max-width:100%;
-      height:auto;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.12);
-    }
-    .svBtns{display:flex; gap:10px; flex-wrap:wrap;}
+    .pvText h3{margin:0 0 4px; font-size:14px; font-weight:850}
+    .pvText p{margin:0; font-size:12px; color:rgba(255,255,255,.78); line-height:1.35}
+    .pvBtns{display:flex; gap:10px; flex-wrap:wrap;}
+    .pvImgWrap{display:grid; place-items:center; max-width:900px; margin:0 auto 30px;}
+    .pvImg{max-width:100%; height:auto; border-radius:14px; border:1px solid rgba(255,255,255,.12);}
   </style>
 </head>
 
@@ -291,39 +239,38 @@
           <img id="photo" alt="" />
         </div>
 
-        <div class="grade"></div>
+        <div class="vignette"></div>
         <div class="grain"></div>
-
-        <div class="controls">
-          <button type="button" id="downloadPng" disabled>Download PNG</button>
-          <button type="button" id="copyPng" disabled>Copy PNG</button>
-          <button type="button" id="saveViewBtn" disabled>Save / Share</button>
-          <button type="button" id="fitBtn" disabled>Fit</button>
-          <button type="button" id="retryBtn" disabled>Retry</button>
-        </div>
-
-        <div class="hint" id="hint">Drag to reposition • Scroll/pinch to zoom</div>
 
         <div class="affirmation" aria-live="polite">
           <p class="main" id="affirmMain"></p>
           <p class="sub" id="affirmSub"></p>
         </div>
 
-        <div class="uploadOverlay">
+        <!-- Controls excluded from export -->
+        <div class="controls" id="controls" data-html2canvas-ignore="true">
+          <button type="button" id="fitBtn" disabled>Fit</button>
+          <button type="button" id="retryBtn" disabled>Retry</button>
+          <button type="button" id="exportBtn" disabled>Export PNG</button>
+        </div>
+
+        <!-- Upload excluded from export -->
+        <div class="uploadOverlay" id="uploadOverlay" data-html2canvas-ignore="true">
           <div class="dropzone" id="dropzone">
             <h2>Add your photo</h2>
             <p>Choose or drop an image. The message appears after the photo loads.</p>
-            <div class="btnRow">
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
               <button type="button" id="chooseBtn">Choose image</button>
             </div>
             <input id="file" type="file" accept="image/*" hidden>
           </div>
         </div>
 
-        <div class="busyOverlay" id="busy">
+        <!-- Busy excluded from export -->
+        <div class="busyOverlay" id="busy" data-html2canvas-ignore="true">
           <div class="busyCard">
-            <p class="busyTitle" id="busyTitle">Working…</p>
-            <p class="busyText" id="busyText">This can take a moment on some phones.</p>
+            <p class="busyTitle">Preparing image…</p>
+            <p class="busyText">On some phones this can take a moment.</p>
             <div class="spinner"></div>
           </div>
         </div>
@@ -332,66 +279,83 @@
     </div>
   </div>
 
-  <!-- In-page Save Viewer -->
-  <div class="saveViewer" id="saveViewer" aria-modal="true" role="dialog">
-    <div class="svTop">
-      <div class="svRow">
-        <div class="svText">
+  <!-- Preview overlay for mobile / fallback -->
+  <div class="preview" id="preview" data-html2canvas-ignore="true">
+    <div class="pvTop">
+      <div class="pvRow">
+        <div class="pvText">
           <h3>Save your poster</h3>
           <p>
-            iPhone/iPad: press and hold the image → <b>Save to Photos</b> / <b>Share</b>.
-            Android: long-press → <b>Download image</b> or share.
-            Desktop: right-click → <b>Save image as…</b>
+            iPhone/iPad: press and hold the image → Save to Photos / Share.<br>
+            Android: long-press → download/share.<br>
+            Desktop: right-click → save image.
           </p>
         </div>
-        <div class="svBtns">
-          <a id="svDownloadLink" href="#" download="poster.png"><button type="button">Try Download</button></a>
-          <button type="button" id="svClose">Close</button>
+        <div class="pvBtns">
+          <a id="pvDownload" href="#" download="poster.png"><button type="button">Try Download</button></a>
+          <button type="button" id="pvClose">Close</button>
         </div>
       </div>
     </div>
-    <div class="svImgWrap">
-      <img class="svImg" id="svImg" alt="Your poster" />
+    <div class="pvImgWrap">
+      <img class="pvImg" id="pvImg" alt="Poster preview">
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <script>
-    // Elements
     const poster = document.getElementById('poster');
     const photo = document.getElementById('photo');
     const fileInput = document.getElementById('file');
     const chooseBtn = document.getElementById('chooseBtn');
     const dropzone = document.getElementById('dropzone');
+    const uploadOverlay = document.getElementById('uploadOverlay');
+
+    const controls = document.getElementById('controls');
+    const fitBtn = document.getElementById('fitBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const exportBtn = document.getElementById('exportBtn');
+
+    const busy = document.getElementById('busy');
 
     const affirmMain = document.getElementById('affirmMain');
     const affirmSub  = document.getElementById('affirmSub');
 
-    const downloadBtn = document.getElementById('downloadPng');
-    const copyBtn = document.getElementById('copyPng');
-    const saveViewBtn = document.getElementById('saveViewBtn');
-    const fitBtn = document.getElementById('fitBtn');
-    const retryBtn = document.getElementById('retryBtn');
-
-    const busy = document.getElementById('busy');
-    const busyTitle = document.getElementById('busyTitle');
-    const busyText = document.getElementById('busyText');
-
-    const saveViewer = document.getElementById('saveViewer');
-    const svImg = document.getElementById('svImg');
-    const svClose = document.getElementById('svClose');
-    const svDownloadLink = document.getElementById('svDownloadLink');
+    const preview = document.getElementById('preview');
+    const pvImg = document.getElementById('pvImg');
+    const pvDownload = document.getElementById('pvDownload');
+    const pvClose = document.getElementById('pvClose');
 
     const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent) && !window.MSStream;
     const isAndroid = /Android/i.test(navigator.userAgent);
 
-    // Track object URL for memory cleanup
     let currentObjectURL = null;
 
-    // -------------------------
-    // Time-of-day affirmations (30 total)
-    // -------------------------
+    // Transform state
+    let scale = 1, x = 0, y = 0;
+    let baseScale = 1, minScale = 0.2, maxScale = 3.0;
+
+    function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+    function apply(){
+      photo.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px) scale(${scale})`;
+    }
+    function computeContainScale(){
+      const pw = poster.clientWidth, ph = poster.clientHeight;
+      const iw = photo.naturalWidth || 1, ih = photo.naturalHeight || 1;
+      return Math.min(pw / iw, ph / ih) * 0.98;
+    }
+    function fitToScreen(){
+      x = 0; y = 0;
+      baseScale = computeContainScale();
+      scale = baseScale;
+      minScale = baseScale * 0.35;
+      maxScale = Math.max(3.0, baseScale * 6);
+      apply();
+      resetGestureBaseline();
+    }
+
+    // Affirmations (~30)
     const MORNING = [
       { main: "This person is allowed a gentle start.", sub: "You don’t need to rush to be worthy." },
       { main: "This person is doing better than they think.", sub: "Even small steps count." },
@@ -438,7 +402,6 @@
       if (h >= 17 && h < 22) return "evening";
       return "late";
     }
-
     function pickAffirmation(){
       const p = dayPart();
       const pool = (p === "morning") ? MORNING
@@ -450,107 +413,24 @@
       affirmSub.textContent  = pick.sub;
     }
 
-    // -------------------------
-    // Busy overlay helpers
-    // -------------------------
-    function showBusy(title, text){
-      busyTitle.textContent = title || "Working…";
-      busyText.textContent = text || "This can take a moment.";
-      busy.classList.add('show');
-    }
-    function hideBusy(){
-      busy.classList.remove('show');
-    }
-
-    // -------------------------
-    // Save viewer helpers
-    // -------------------------
-    function openSaveViewer(dataUrl){
-      svImg.src = dataUrl;
-      svDownloadLink.href = dataUrl;
-      saveViewer.classList.add('show');
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
-    }
-    function closeSaveViewer(){
-      saveViewer.classList.remove('show');
-      svImg.src = "";
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
-    }
-    svClose.addEventListener('click', closeSaveViewer);
-    saveViewer.addEventListener('click', (e) => {
-      if (e.target === saveViewer) closeSaveViewer();
-    });
-
-    // -------------------------
-    // Transform state (fit + margins)
-    // -------------------------
-    let scale = 1, x = 0, y = 0;
-    let baseScale = 1, minScale = 0.2, maxScale = 3.0;
-
-    function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
-    function apply(){
-      photo.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px) scale(${scale})`;
-    }
-
-    function computeContainScale(){
-      const pw = poster.clientWidth;
-      const ph = poster.clientHeight;
-      const iw = photo.naturalWidth || 1;
-      const ih = photo.naturalHeight || 1;
-      return Math.min(pw / iw, ph / ih) * 0.98;
-    }
-
-    const pointers = new Map();
-    let lastPinchDist = null;
-
-    function resetGestureBaseline(){
-      pointers.clear();
-      lastPinchDist = null;
-    }
-
-    function fitToScreen(){
-      x = 0; y = 0;
-      baseScale = computeContainScale();
-      scale = baseScale;
-      minScale = baseScale * 0.35;
-      maxScale = Math.max(3.0, baseScale * 6);
-      apply();
-      resetGestureBaseline();
-    }
-
-    // -------------------------
-    // Timers (ONLY from initial image load)
-    // - hint hides after 5s
-    // - affirmation reveals after 6s
-    // - retry appears after 20s
-    // Retry does NOT restart these.
-    // -------------------------
+    // One-time timers (reveal after 6s; retry after 20s optional removed here)
     let timersStarted = false;
-    function startOneTimeTimers(){
+    function startTimers(){
       if (timersStarted) return;
       timersStarted = true;
-
       poster.classList.remove('reveal');
-      poster.classList.remove('hintHidden');
-      poster.classList.add('retryHidden');
-
-      setTimeout(() => poster.classList.add('hintHidden'), 5000);
       setTimeout(() => poster.classList.add('reveal'), 6000);
-      setTimeout(() => poster.classList.remove('retryHidden'), 20000);
     }
 
-    // -------------------------
-    // Upload handling (fast on iOS)
-    // -------------------------
-    chooseBtn.addEventListener('click', () => fileInput.click());
+    function showBusy(){ busy.classList.add('show'); }
+    function hideBusy(){ busy.classList.remove('show'); }
 
+    // Upload
+    chooseBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];
       if (f) loadImageFast(f);
     });
-
     dropzone.addEventListener('dragover', (e) => e.preventDefault());
     dropzone.addEventListener('drop', (e) => {
       e.preventDefault();
@@ -561,23 +441,20 @@
     async function loadImageFast(fileObj){
       pickAffirmation();
 
-      if (currentObjectURL) {
-        URL.revokeObjectURL(currentObjectURL);
-        currentObjectURL = null;
-      }
-
+      if (currentObjectURL) URL.revokeObjectURL(currentObjectURL);
       currentObjectURL = URL.createObjectURL(fileObj);
 
       photo.onload = () => {
+        uploadOverlay.style.display = 'none';
+        controls.classList.add('show');
         poster.classList.add('loaded');
-        downloadBtn.disabled = false;
-        copyBtn.disabled = false;
-        saveViewBtn.disabled = true;
+
         fitBtn.disabled = false;
         retryBtn.disabled = false;
+        exportBtn.disabled = false;
 
         fitToScreen();
-        startOneTimeTimers();
+        startTimers();
       };
 
       photo.src = currentObjectURL;
@@ -594,9 +471,10 @@
       pickAffirmation();
     });
 
-    // -------------------------
-    // Gestures: stable iOS pinch/drag + desktop wheel
-    // -------------------------
+    // Gestures
+    const pointers = new Map();
+    let lastPinchDist = null;
+
     const DRAG_SENS = isIOS ? 0.45 : 1.0;
     const PINCH_SENS = isIOS ? 0.18 : 1.0;
     const PINCH_DEADZONE = isIOS ? 0.012 : 0.0;
@@ -606,10 +484,7 @@
     function scheduleApply(){
       if (needsApply) return;
       needsApply = true;
-      requestAnimationFrame(() => {
-        needsApply = false;
-        apply();
-      });
+      requestAnimationFrame(() => { needsApply = false; apply(); });
     }
 
     function getDist(a, b){
@@ -617,10 +492,14 @@
       const dy = a.clientY - b.clientY;
       return Math.hypot(dx, dy);
     }
+    function resetGestureBaseline(){
+      pointers.clear();
+      lastPinchDist = null;
+    }
 
     poster.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('button') || e.target.closest('input') || e.target.closest('#dropzone')) return;
-      if(!poster.classList.contains('loaded')) return;
+      if (!poster.classList.contains('loaded')) return;
+      if (e.target.closest('button') || e.target.closest('input')) return;
 
       pointers.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
       poster.setPointerCapture?.(e.pointerId);
@@ -685,97 +564,65 @@
       const factor = (delta > 0) ? 1.08 : 0.92;
       scale = clamp(scale * factor, minScale, maxScale);
       apply();
-    }, { passive: false });
+    }, { passive:false });
 
-    window.addEventListener('resize', () => {
-      if (!poster.classList.contains('loaded')) return;
-      const prevBase = baseScale || 1;
-      const rel = scale / prevBase;
-
-      baseScale = computeContainScale();
-      minScale = baseScale * 0.35;
-      maxScale = Math.max(3.0, baseScale * 6);
-
-      scale = clamp(baseScale * rel, minScale, maxScale);
-      apply();
-      resetGestureBaseline();
-    });
-
-    // -------------------------
-    // Export: viewer-first on mobile, attempt normal ops on desktop
-    // -------------------------
-    async function captureCanvas(){
-      return await html2canvas(poster, {
-        scale: 2,
-        backgroundColor: "#0b0c10",
-        useCORS: true
-      });
+    // Export (critical: excludes UI via data-html2canvas-ignore)
+    function openPreview(dataUrl){
+      pvImg.src = dataUrl;
+      pvDownload.href = dataUrl;
+      preview.classList.add('show');
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
     }
-
-    async function renderAndShow(){
-      if (!poster.classList.contains('loaded')) return;
-      showBusy("Creating image…", "On some phones this can take a moment with high-res photos.");
-      try{
-        const canvas = await captureCanvas();
-        const dataUrl = canvas.toDataURL("image/png");
-        openSaveViewer(dataUrl);
-      } finally {
-        hideBusy();
-      }
+    function closePreview(){
+      preview.classList.remove('show');
+      pvImg.src = "";
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
     }
+    pvClose.addEventListener('click', closePreview);
+    preview.addEventListener('click', (e) => { if (e.target === preview) closePreview(); });
 
-    saveViewBtn.addEventListener('click', renderAndShow);
+    async function exportPNG(){
+      if(!poster.classList.contains('loaded')) return;
+      showBusy();
 
-    downloadBtn.addEventListener('click', async () => {
-      if (!poster.classList.contains('loaded')) return;
+      // Fail-safe: never leave “Preparing…” stuck
+      const safety = setTimeout(() => hideBusy(), 15000);
 
-      // Mobile: go straight to viewer (reliable)
-      if (isIOS || isAndroid) return renderAndShow();
-
-      showBusy("Preparing download…", "Hang tight.");
       try{
-        const canvas = await captureCanvas();
+        // allow busy overlay to paint (it’s ignored in capture anyway)
+        await new Promise(r => setTimeout(r, 60));
+
+        const canvas = await html2canvas(poster, {
+          scale: 2,
+          backgroundColor: "#0b0c10",
+          useCORS: true,
+          logging: false
+        });
+
         const dataUrl = canvas.toDataURL("image/png");
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = "poster.png";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      } catch {
-        await renderAndShow();
-      } finally {
-        hideBusy();
-      }
-    });
 
-    copyBtn.addEventListener('click', async () => {
-      if (!poster.classList.contains('loaded')) return;
-
-      // Mobile: go straight to viewer (reliable)
-      if (isIOS || isAndroid) return renderAndShow();
-
-      showBusy("Copying image…", "If blocked, we’ll show a save screen.");
-      try{
-        const canvas = await captureCanvas();
-        const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
-        if (navigator.clipboard && window.ClipboardItem && blob) {
-          await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-          alert("Copied as PNG. Paste into apps that support image paste.");
+        // Desktop: direct download
+        if (!isIOS && !isAndroid){
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = "poster.png";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
           return;
         }
-        await renderAndShow();
-      } catch {
-        await renderAndShow();
+
+        // Mobile: preview (reliable save/share)
+        openPreview(dataUrl);
       } finally {
+        clearTimeout(safety);
         hideBusy();
       }
-    });
+    }
 
-    // Init
-    poster.classList.add('retryHidden');
-    pickAffirmation();
-    apply();
+    exportBtn.addEventListener('click', exportPNG);
   </script>
 </body>
 </html>
