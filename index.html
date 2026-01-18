@@ -19,6 +19,19 @@
       --shadow:0 10px 30px rgba(0,0,0,.55);
       --radius:18px;
     }
+    @media (max-width: 520px){
+  .controls{
+    justify-content:center;           /* stop pushing right off-screen */
+    gap:8px;
+  }
+  .controls button{
+    padding:9px 12px;                /* slightly tighter */
+    border-radius:11px;
+    font-size:13px;
+    white-space:nowrap;              /* keep each button intact */
+  }
+}
+
     *{box-sizing:border-box}
     body{
       margin:0;
@@ -115,14 +128,21 @@
     button:active{transform:translateY(1px)}
     button:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
-    .controls{
-      position:absolute; top:14px; left:14px; right:14px;
-      display:none;
-      gap:10px;
-      justify-content:flex-end;
-      flex-wrap:wrap;
-      z-index:20;
-    }
+.controls{
+  position:absolute;
+  top:14px;
+  left:max(12px, env(safe-area-inset-left));
+  right:max(12px, env(safe-area-inset-right));
+  display:none;
+  gap:10px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  z-index:20;
+
+  max-width:calc(100% - 24px); /* prevents off-canvas drift */
+  margin:0 auto;
+}
+
 
     .hint{
       position:absolute; top:14px; left:14px;
